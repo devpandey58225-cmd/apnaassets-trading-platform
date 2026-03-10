@@ -1,0 +1,739 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ApnaAssets | Premium VIP Digital Vault</title>
+    
+    <!-- FONTS & ICONS -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- LIBRARIES -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
+    <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+    
+    <!-- FIREBASE -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Plus Jakarta Sans', 'sans-serif'] },
+                    colors: {
+                        primary: { 50: '#f0f4ff', 500: '#6366f1', 600: '#4f46e5' },
+                        gold: { 400: '#fbbf24', 500: '#f59e0b', 600: '#d97706' },
+                        dark: { 800: '#1e293b', 900: '#0f172a', 950: '#020617' }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        /* Hide Blogger Navbar */
+        #navbar, .navbar, #navbar-iframe { display: none !important; height: 0 !important; visibility: hidden !important; }
+
+        body { font-family: 'Plus Jakarta Sans', sans-serif; -webkit-tap-highlight-color: transparent; }
+        [v-cloak] { display: none; }
+        .glass { background: rgba(255, 255, 255, 0.75); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); }
+        .dark .glass { background: rgba(15, 23, 42, 0.8); }
+        .loader { width: 20px; height: 20px; border: 3px solid #6366f1; border-top-color: transparent; border-radius: 50%; display: inline-block; animation: rotation 1s linear infinite; }
+        @keyframes rotation { 0% { transform: rotate(360deg); } }
+        .btn-premium { background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%); }
+        .listing-card:hover { transform: translateY(-10px); box-shadow: 0 30px 50px -12px rgba(0,0,0,0.25); }
+        
+        /* VIP GOLDEN EFFECTS */
+        .vip-card { border: 2px solid #f59e0b !important; box-shadow: 0 0 25px rgba(245, 158, 11, 0.15); }
+        .vip-golden-glow { background: linear-gradient(135deg, #fbbf24 0%, #d97706 100%); color: white !important; }
+        .vip-border { border: 4px solid #f59e0b !important; box-shadow: 0 0 20px rgba(245, 158, 11, 0.4); }
+        .vip-text { background: linear-gradient(to right, #fbbf24, #d97706); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-weight: 900; }
+        
+        /* Ticker Animation */
+        .ticker-wrapper { overflow: hidden; white-space: nowrap; }
+        .ticker-text { display: inline-block; animation: ticker 30s linear infinite; }
+        @keyframes ticker { 0% { transform: translateX(100%); } 100% { transform: translateX(-100%); } }
+    </style>
+</head>
+
+<body class="bg-[#f9fafb] text-gray-900 dark:bg-dark-950 dark:text-gray-100 transition-colors duration-300">
+
+    <div id="app" v-cloak>
+        <!-- ANNOUNCEMENT BAR -->
+        <div class="fixed top-0 w-full z-[60] bg-dark-950 text-white py-2 text-[10px] font-black uppercase tracking-[0.2em] ticker-wrapper">
+            <div class="ticker-text">
+                🔱 ApnaAssets VIP Vault Is Live 🔱 Privacy Guaranteed • Manual Escrow Verification via Dev Pande (6388677742) • No Auto-Payments for User Security • Trade Like a King
+            </div>
+        </div>
+
+        <!-- NAVBAR -->
+        <nav class="fixed top-8 w-full z-50 border-b border-gray-200/50 dark:border-gray-800/50 glass transition-all">
+            <div class="max-w-7xl mx-auto px-4 h-20 flex justify-between items-center">
+                <!-- Logo -->
+                <div class="flex items-center cursor-pointer group" @click="setView('home')">
+                    <div class="w-10 h-10 bg-primary-600 rounded-xl flex items-center justify-center mr-3 text-white shadow-lg group-hover:rotate-12 transition-transform"><i class="fa-solid fa-crown"></i></div>
+                    <span class="font-extrabold text-2xl tracking-tighter">Apna<span class="text-primary-600">Assets</span></span>
+                </div>
+
+                <!-- NAVBAR SEARCH -->
+                <div class="hidden md:flex flex-1 max-w-sm mx-10 relative">
+                    <i class="fa-solid fa-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                    <input v-model="filters.search" type="text" class="w-full pl-11 pr-4 py-2.5 rounded-2xl bg-gray-100 dark:bg-dark-900 border-transparent focus:bg-white dark:focus:bg-dark-800 focus:ring-2 focus:ring-primary-500 outline-none text-xs font-bold transition-all" placeholder="Find Premium Assets...">
+                </div>
+
+                <!-- Actions -->
+                <div class="flex items-center gap-4">
+                    <button @click="toggleTheme" class="w-10 h-10 rounded-xl flex items-center justify-center bg-gray-100 dark:bg-dark-900 transition-colors">
+                        <i class="fa-solid" :class="isDark ? 'fa-sun text-yellow-400' : 'fa-moon text-gray-400'"></i>
+                    </button>
+
+                    <template v-if="user">
+                        <div class="relative group">
+                            <button :class="userProfile.isVerified ? 'vip-border' : 'border-primary-500'" class="flex items-center p-0.5 rounded-full border-2 shadow-lg transition-all">
+                                <img :src="userProfile.avatar || 'https://api.dicebear.com/7.x/bottts/svg?seed=' + userProfile.username" class="h-9 w-9 rounded-full bg-white">
+                            </button>
+                            <!-- Dropdown -->
+                            <div class="absolute right-0 mt-3 w-64 bg-white dark:bg-dark-800 rounded-[30px] shadow-2xl border dark:border-gray-700 py-4 hidden group-hover:block z-50">
+                                <div class="px-6 py-3 border-b dark:border-gray-700 mb-2">
+                                    <p class="text-sm font-black flex items-center gap-2">
+                                        <span :class="userProfile.isVerified ? 'vip-text' : ''">{{ userProfile.username }}</span>
+                                        <i v-if="userProfile.isVerified" class="fa-solid fa-crown text-gold-500"></i>
+                                    </p>
+                                    <p class="text-[9px] text-gray-400 font-bold uppercase tracking-widest mt-1">Privacy Level: Encrypted</p>
+                                </div>
+                                <a @click="setView('dashboard')" class="flex items-center gap-3 px-6 py-3 text-xs font-black hover:bg-gray-50 dark:hover:bg-dark-700 transition-all cursor-pointer"><i class="fa-solid fa-vault text-primary-500"></i> Dashboard</a>
+                                <a @click="setView('profile')" class="flex items-center gap-3 px-6 py-3 text-xs font-black hover:bg-gray-50 dark:hover:bg-dark-700 transition-all cursor-pointer"><i class="fa-solid fa-fingerprint text-primary-500"></i> My Identity</a>
+                                <a @click="setView('saved')" class="flex items-center gap-3 px-6 py-3 text-xs font-black hover:bg-gray-50 dark:hover:bg-dark-700 transition-all cursor-pointer"><i class="fa-solid fa-gem text-red-500"></i> Saved Assets</a>
+                                <div class="border-t dark:border-gray-700 mt-2 pt-2">
+                                    <a @click="logout" class="flex items-center gap-3 px-6 py-3 text-xs font-black text-red-500 hover:bg-red-50 transition-all cursor-pointer"><i class="fa-solid fa-power-off"></i> Disconnect</a>
+                                </div>
+                            </div>
+                        </div>
+                    </template>
+                    <template v-else>
+                        <button @click="setView('auth')" class="btn-premium text-white px-8 py-2.5 rounded-2xl text-xs font-black shadow-lg">Enter Vault</button>
+                    </template>
+                </div>
+            </div>
+        </nav>
+
+        <!-- MAIN -->
+        <main class="pt-36 pb-20 max-w-7xl mx-auto px-4 min-h-screen">
+            <transition name="fade" mode="out-in">
+
+                <!-- 1. HOME VIEW -->
+                <div v-if="currentView === 'home'" key="home">
+                    <!-- Premium Hero -->
+                    <div class="mb-20 text-center lg:text-left grid lg:grid-cols-2 gap-12 items-center">
+                        <div>
+                            <div class="inline-flex items-center gap-3 bg-white dark:bg-dark-900 border dark:border-gray-800 px-5 py-2.5 rounded-full mb-8 shadow-sm">
+                                <span class="flex h-2 w-2 bg-green-500 rounded-full animate-ping"></span>
+                                <p class="text-[10px] font-black text-gray-500 uppercase tracking-widest">{{ stats.totalUsers || 0 }} Live Digital Traders</p>
+                            </div>
+                            <h1 class="text-6xl md:text-8xl font-black mb-6 tracking-tighter leading-none">Trade <span class="text-primary-600">Premium</span> Assets.</h1>
+                            <p class="text-gray-500 font-bold text-lg max-w-xl mb-10 leading-relaxed">India's most private and secure hub for digital acquisition. Verified by Dev Pande. Handled with VIP care.</p>
+                            
+                            <!-- SITE STATS -->
+                            <div class="grid grid-cols-3 gap-6">
+                                <div class="p-6 bg-white dark:bg-dark-900 rounded-[35px] border dark:border-gray-800 shadow-sm text-center transition-all hover:vip-card group">
+                                    <p class="text-3xl font-black text-primary-600 tracking-tighter group-hover:vip-text">{{ stats.totalAssets || 0 }}</p>
+                                    <p class="text-[9px] font-black text-gray-400 uppercase tracking-widest mt-1">In Stock</p>
+                                </div>
+                                <div class="p-6 bg-white dark:bg-dark-900 rounded-[35px] border dark:border-gray-800 shadow-sm text-center transition-all hover:vip-card group">
+                                    <p class="text-3xl font-black text-primary-600 tracking-tighter group-hover:vip-text">100%</p>
+                                    <p class="text-[9px] font-black text-gray-400 uppercase tracking-widest mt-1">Privacy</p>
+                                </div>
+                                <div class="p-6 bg-white dark:bg-dark-900 rounded-[35px] border dark:border-gray-800 shadow-sm text-center transition-all hover:vip-card group">
+                                    <p class="text-3xl font-black text-primary-600 tracking-tighter group-hover:vip-text">Elite</p>
+                                    <p class="text-[9px] font-black text-gray-400 uppercase tracking-widest mt-1">Escrow</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="hidden lg:block relative">
+                            <div class="absolute -inset-10 bg-primary-500/10 blur-[100px] rounded-full"></div>
+                            <img src="https://illustrations.popsy.co/gray/success.svg" class="w-full relative z-10 scale-110">
+                        </div>
+                    </div>
+
+                    <!-- Filter Section -->
+                    <div class="flex flex-col md:flex-row gap-6 mb-12">
+                        <div class="relative flex-1">
+                            <i class="fa-solid fa-magnifying-glass absolute left-6 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                            <input v-model="filters.search" type="text" class="w-full pl-16 pr-6 py-5 rounded-[25px] bg-white dark:bg-dark-900 border dark:border-gray-800 outline-none focus:ring-4 focus:ring-primary-500/10 font-bold transition-all shadow-sm" placeholder="Find elite channels, domains...">
+                        </div>
+                        <div class="flex gap-2 overflow-x-auto hide-scrollbar pb-2">
+                            <button v-for="cat in categories" :key="cat.id" @click="filters.category = cat.id" :class="filters.category === cat.id ? 'vip-golden-glow shadow-gold-500/30' : 'bg-white dark:bg-dark-900 text-gray-400'" class="px-8 py-5 rounded-[25px] text-[10px] font-black uppercase tracking-widest flex items-center gap-2 transition-all border dark:border-gray-800">
+                                <i :class="cat.icon"></i> {{ cat.name }}
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Market Grid -->
+                    <div v-if="loading" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10">
+                        <div v-for="n in 8" class="bg-white dark:bg-dark-900 rounded-[50px] h-96 animate-pulse border dark:border-gray-800"></div>
+                    </div>
+                    <div v-else class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10 mb-20">
+                        <div v-for="item in filteredListings" :key="item.id" @click="openListing(item)" :class="item.sellerVerified ? 'vip-card scale-[1.02]' : ''" class="listing-card group bg-white dark:bg-dark-900 rounded-[50px] border dark:border-gray-800 shadow-sm transition-all cursor-pointer overflow-hidden flex flex-col relative">
+                            <div class="relative aspect-video overflow-hidden">
+                                <img :src="item.images[0]" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110">
+                                <div class="absolute top-6 left-6 flex flex-col gap-2">
+                                    <span class="bg-white/90 dark:bg-dark-900/90 backdrop-blur-md px-4 py-2 rounded-2xl text-[9px] font-black uppercase tracking-widest shadow-sm">{{ item.category }}</span>
+                                    <span v-if="item.sellerVerified" class="vip-golden-glow px-4 py-2 rounded-2xl text-[9px] font-black uppercase tracking-widest shadow-xl">🔱 VIP Elite</span>
+                                </div>
+                            </div>
+                            <div class="p-8 flex-1 flex flex-col">
+                                <h3 class="font-black text-xl mb-4 line-clamp-1 group-hover:vip-text transition-all">{{ item.title }}</h3>
+                                <div class="flex items-center justify-between mt-auto pt-6 border-t dark:border-gray-800">
+                                    <div>
+                                        <p class="text-[9px] font-black text-gray-400 uppercase tracking-widest">Neural Value</p>
+                                        <p class="font-black text-3xl text-primary-600 tracking-tighter">₹{{ formatPrice(item.price) }}</p>
+                                    </div>
+                                    <div class="w-12 h-12 rounded-2xl bg-gray-50 dark:bg-dark-950 flex items-center justify-center text-gray-300 group-hover:text-gold-500 transition-all"><i class="fa-solid fa-arrow-up-right-from-square"></i></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Official Support -->
+                    <div class="vip-golden-glow rounded-[60px] p-12 md:p-20 text-white text-center relative overflow-hidden shadow-2xl mb-20">
+                        <div class="absolute inset-0 opacity-10 pointer-events-none">
+                            <i class="fa-solid fa-fingerprint text-[300px] absolute -bottom-20 -left-20 rotate-12"></i>
+                        </div>
+                        <h2 class="text-5xl font-black mb-8 relative z-10 tracking-tighter">Zero-Knowledge Escrow.</h2>
+                        <p class="text-white/80 text-xl mb-12 max-w-2xl mx-auto relative z-10 font-bold leading-relaxed">No data storage on public servers. Payments handled manually via **6388677742 (Dev Pande)** for absolute privacy.</p>
+                        <button @click="openOfficialWhatsApp" class="bg-white text-gold-600 px-12 py-6 rounded-[35px] font-black text-2xl shadow-2xl relative z-10 transition-all hover:scale-105 active:scale-95 flex items-center gap-4 mx-auto">
+                            <i class="fa-brands fa-whatsapp text-3xl"></i> Official Secure Line
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 2. DETAIL VIEW -->
+                <div v-else-if="currentView === 'detail' && selectedListing" key="detail" class="max-w-6xl mx-auto">
+                    <div class="flex justify-between items-center mb-10">
+                        <button @click="setView('home')" class="font-black text-gray-400 hover:text-primary-600 transition-colors flex items-center gap-3"><i class="fa-solid fa-circle-arrow-left text-xl"></i> MARKETPLACE</button>
+                        <button @click="reportListing(selectedListing.id)" class="text-[10px] font-black text-red-500 uppercase tracking-widest flex items-center gap-2 hover:bg-red-50 dark:hover:bg-red-900/10 px-4 py-2 rounded-xl transition-all"><i class="fa-solid fa-flag"></i> Report Listing</button>
+                    </div>
+
+                    <div class="grid grid-cols-1 lg:grid-cols-12 gap-12">
+                        <div class="lg:col-span-7 space-y-8">
+                            <div class="bg-black rounded-[50px] overflow-hidden shadow-2xl aspect-video flex items-center justify-center border-8 border-white dark:border-dark-800 relative">
+                                <img :src="activeImage" class="max-h-full object-contain">
+                                <div class="absolute bottom-8 left-8 flex gap-4">
+                                    <div class="bg-black/40 backdrop-blur-md px-6 py-3 rounded-2xl text-white text-xs font-black border border-white/20"><i class="fa-solid fa-bolt mr-2 text-gold-400"></i> Hot Transaction</div>
+                                </div>
+                            </div>
+                            <div class="flex gap-4 overflow-x-auto hide-scrollbar py-2">
+                                <img v-for="img in selectedListing.images" :key="img" :src="img" @click="activeImage = img" class="w-24 h-24 object-cover rounded-3xl cursor-pointer border-4 transition-all shadow-lg" :class="activeImage === img ? 'border-primary-500 scale-110' : 'border-transparent opacity-40'">
+                            </div>
+                            <div class="bg-white dark:bg-dark-900 p-12 md:p-16 rounded-[60px] shadow-sm border dark:border-gray-800">
+                                <h3 class="text-3xl font-black mb-8 text-primary-600 border-b dark:border-gray-800 pb-6 tracking-tight">Description</h3>
+                                <p class="text-gray-500 font-bold whitespace-pre-line leading-relaxed text-xl">{{ selectedListing.description }}</p>
+                            </div>
+                        </div>
+                        <!-- Right Sidebar -->
+                        <div class="lg:col-span-5">
+                            <div :class="selectedListing.sellerVerified ? 'vip-card shadow-gold-500/10' : ''" class="bg-white dark:bg-dark-900 p-10 md:p-12 rounded-[60px] shadow-2xl border dark:border-gray-800 sticky top-32">
+                                <div class="flex justify-between items-start mb-10">
+                                    <div class="px-5 py-2.5 rounded-2xl bg-primary-50 dark:bg-primary-900/30 text-primary-600 text-[10px] font-black uppercase tracking-[0.2em]">{{ selectedListing.category }}</div>
+                                    <div class="flex gap-3">
+                                        <button @click="shareAsset(selectedListing)" class="w-12 h-12 rounded-2xl bg-gray-50 dark:bg-dark-950 flex items-center justify-center hover:bg-primary-50 transition-all shadow-sm"><i class="fa-solid fa-share-nodes text-primary-600"></i></button>
+                                        <button @click="toggleSaved(selectedListing.id)" class="w-12 h-12 rounded-2xl bg-gray-50 dark:bg-dark-950 flex items-center justify-center transition-all shadow-sm">
+                                            <i class="fa-solid fa-heart" :class="isSaved(selectedListing.id) ? 'text-red-500' : 'text-gray-300'"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <h1 class="text-4xl md:text-6xl font-black mb-8 tracking-tighter leading-none" :class="selectedListing.sellerVerified ? 'vip-text' : ''">{{ selectedListing.title }}</h1>
+                                <div class="mb-12">
+                                    <p class="text-[10px] font-black text-gray-400 uppercase tracking-[0.3em] mb-2">Exclusive Liquidation Price</p>
+                                    <p class="text-7xl font-black text-primary-600 tracking-tighter">₹{{ formatPrice(selectedListing.price) }}</p>
+                                </div>
+                                
+                                <div class="flex items-center gap-5 mb-12 p-6 bg-gray-50 dark:bg-dark-950 rounded-[40px] border dark:border-gray-800 relative overflow-hidden">
+                                    <div class="w-16 h-16 bg-primary-100 text-primary-600 rounded-[22px] flex items-center justify-center font-black text-2xl shadow-inner relative z-10">{{ selectedListing.sellerName.charAt(0).toUpperCase() }}</div>
+                                    <div class="flex-1 relative z-10">
+                                        <p class="font-black text-lg flex items-center gap-2">
+                                            <span :class="selectedListing.sellerVerified ? 'vip-text' : ''">{{ selectedListing.sellerName }}</span>
+                                            <i v-if="selectedListing.sellerVerified" class="fa-solid fa-crown text-gold-500 text-sm"></i>
+                                        </p>
+                                        <p class="text-[10px] text-gray-400 font-black uppercase tracking-widest">Reputation: Elite Merchant</p>
+                                    </div>
+                                    <div v-if="selectedListing.sellerVerified" class="absolute -right-5 -top-5 opacity-5">
+                                        <i class="fa-solid fa-crown text-[100px] text-gold-500"></i>
+                                    </div>
+                                </div>
+
+                                <div class="space-y-4">
+                                    <button @click="openSellerLink(selectedListing)" class="w-full btn-premium text-white font-black py-6 rounded-[35px] shadow-2xl shadow-primary-500/30 text-2xl active:scale-95 transition-all tracking-tight">INSTANT BUY <i class="fa-solid fa-crown ml-2"></i></button>
+                                    <button @click="openSellerLink(selectedListing)" class="w-full border-4 border-gray-100 dark:border-gray-700 font-black py-6 rounded-[35px] transition-all hover:border-primary-500 hover:text-primary-600 text-xl tracking-tight">CONTACT SELLER</button>
+                                </div>
+
+                                <div class="mt-12 pt-10 border-t dark:border-gray-800 text-center">
+                                    <p class="text-[11px] font-black text-gray-400 uppercase tracking-widest flex items-center justify-center gap-3"><i class="fa-solid fa-user-secret text-gold-600 text-lg"></i> Dev Pande Private Escrow Active</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 3. DASHBOARD -->
+                <div v-else-if="currentView === 'dashboard'" key="dashboard">
+                    <div class="flex flex-col md:flex-row justify-between items-center mb-16 gap-8">
+                        <div>
+                            <h2 class="text-6xl font-black tracking-tighter">Digital Warehouse</h2>
+                            <p class="text-gray-400 font-bold mt-2">Manage your high-value inventory Assets.</p>
+                        </div>
+                        <button @click="openCreateModal" class="btn-premium text-white px-12 py-6 rounded-[35px] font-black shadow-xl active:scale-95 transition-all flex items-center gap-4 text-xl tracking-tight"><i class="fa-solid fa-plus-circle"></i> NEW ASSET</button>
+                    </div>
+                    <div v-if="myListings.length > 0" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-12">
+                        <div v-for="item in myListings" :key="item.id" :class="userProfile.isVerified ? 'vip-card' : ''" class="p-10 bg-white dark:bg-dark-900 rounded-[60px] border dark:border-gray-800 shadow-sm flex flex-col gap-8 group hover:border-primary-500 transition-all relative">
+                            <div v-if="userProfile.isVerified" class="absolute top-5 right-10 vip-text text-[10px] uppercase tracking-widest">VIP Asset</div>
+                            <div class="flex items-center gap-8">
+                                <img :src="item.images[0]" class="w-28 h-28 rounded-[40px] object-cover shadow-2xl group-hover:rotate-6 transition-transform">
+                                <div class="flex-1">
+                                    <h4 class="font-black text-xl mb-1 truncate tracking-tight">{{ item.title }}</h4>
+                                    <p class="text-primary-600 font-black text-2xl tracking-tighter">₹{{ formatPrice(item.price) }}</p>
+                                    
+                                    <div class="flex gap-4 mt-4">
+                                        <div class="text-center">
+                                            <p class="text-[8px] font-black text-gray-400 uppercase">Neural Views</p>
+                                            <p class="text-xs font-black">{{ item.views || 0 }}</p>
+                                        </div>
+                                        <div class="text-center border-l dark:border-gray-800 pl-4">
+                                            <p class="text-[8px] font-black text-gray-400 uppercase">Leads</p>
+                                            <p class="text-xs font-black text-primary-600">{{ item.clicks || 0 }}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="flex gap-4 pt-8 border-t dark:border-gray-700">
+                                <button @click="editListing(item)" class="flex-1 py-5 bg-gray-50 dark:bg-dark-950 rounded-[28px] font-black text-[11px] text-blue-600 uppercase hover:bg-primary-50 transition-all">Update</button>
+                                <button @click="deleteListing(item.id)" class="flex-1 py-5 bg-gray-50 dark:bg-dark-950 rounded-[28px] font-black text-[11px] text-red-500 uppercase hover:bg-red-50 transition-all">Purge</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div v-else class="text-center py-32 bg-gray-100/50 dark:bg-dark-900/50 rounded-[70px] border-4 border-dashed dark:border-gray-800">
+                        <i class="fa-solid fa-cubes-stacked text-7xl text-gray-300 mb-10 block"></i>
+                        <p class="text-gray-400 font-black text-2xl mb-10">No digital assets found in your neural network.</p>
+                        <button @click="openCreateModal" class="btn-premium text-white px-12 py-6 rounded-[35px] font-black shadow-xl">Deploy Your First Asset</button>
+                    </div>
+                </div>
+
+                <!-- 4. PROFILE / SETTINGS -->
+                <div v-else-if="currentView === 'profile'" key="profile" class="max-w-2xl mx-auto">
+                    <h2 class="text-4xl font-black mb-12 tracking-tighter">My VIP Identity</h2>
+                    <div class="bg-white dark:bg-dark-900 p-14 md:p-20 rounded-[70px] shadow-2xl border dark:border-gray-800 relative overflow-hidden">
+                        <div v-if="userProfile.isVerified" class="absolute top-10 right-10 rotate-12 opacity-10"><i class="fa-solid fa-crown text-[150px] text-gold-500"></i></div>
+                        <div class="text-center mb-14 relative z-10">
+                            <div class="relative inline-block mb-10">
+                                <img :class="userProfile.isVerified ? 'vip-border' : 'border-primary-500/10'" :src="userProfile.avatar || 'https://api.dicebear.com/7.x/bottts/svg?seed=' + userProfile.username" class="w-52 h-52 rounded-[65px] object-cover shadow-2xl border-8 transition-all duration-700">
+                                <label class="absolute -bottom-4 -right-4 w-16 h-16 bg-primary-600 text-white rounded-[25px] flex items-center justify-center cursor-pointer shadow-xl hover:rotate-12 transition-transform border-8 border-white dark:border-dark-900">
+                                    <i class="fa-solid fa-signature text-xl"></i>
+                                    <input type="file" @change="uploadAvatar" class="hidden" accept="image/*">
+                                </label>
+                            </div>
+                            <h2 class="text-5xl font-black mb-3 flex items-center justify-center gap-4 tracking-tighter">
+                                <span :class="userProfile.isVerified ? 'vip-text' : ''">{{ userProfile.username }}</span>
+                                <i v-if="userProfile.isVerified" class="fa-solid fa-crown text-gold-500"></i>
+                            </h2>
+                            <p class="text-gray-400 font-black uppercase text-[11px] tracking-[0.4em]">{{ user.email }}</p>
+                        </div>
+                        <div class="space-y-12 relative z-10">
+                            <div>
+                                <label class="text-[11px] font-black uppercase text-gray-400 ml-3 tracking-widest mb-4 block">Merchant Bio & Reputation</label>
+                                <textarea v-model="userProfile.bio" rows="5" class="w-full px-10 py-7 rounded-[40px] bg-gray-50 dark:bg-dark-950 border-2 border-transparent focus:border-primary-500 outline-none font-bold shadow-inner transition-all text-xl" placeholder="Explain your trading history..."></textarea>
+                            </div>
+                            <button @click="updateProfile" :disabled="loading" class="w-full btn-premium py-8 rounded-[40px] text-white font-black text-2xl shadow-2xl active:scale-95 transition-all">
+                                <span v-if="loading" class="loader border-white mr-4"></span> SYNC IDENTITY
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 5. WISHLIST -->
+                <div v-else-if="currentView === 'saved'" key="saved">
+                    <h2 class="text-4xl font-black mb-12 tracking-tighter">Jewelry Box (Saved)</h2>
+                    <div v-if="savedListingsArray.length > 0" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-12">
+                         <div v-for="item in savedListingsArray" :key="item.id" @click="openListing(item)" class="bg-white dark:bg-dark-900 rounded-[60px] shadow-sm hover:shadow-2xl transition-all cursor-pointer overflow-hidden border dark:border-gray-800">
+                             <img :src="item.images[0]" class="w-full aspect-video object-cover">
+                             <div class="p-12 text-center">
+                                 <h3 class="font-black text-2xl line-clamp-1 mb-4">{{ item.title }}</h3>
+                                 <p class="text-primary-600 font-black text-4xl tracking-tighter mb-8">₹{{ formatPrice(item.price) }}</p>
+                                 <button @click.stop="toggleSaved(item.id)" class="text-[10px] font-black text-red-500 uppercase tracking-widest border-b-2 border-red-500/20 hover:border-red-500 transition-all"><i class="fa-solid fa-eraser mr-2"></i> Remove</button>
+                             </div>
+                         </div>
+                    </div>
+                    <div v-else class="text-center py-40 bg-white dark:bg-dark-900 rounded-[80px] border dark:border-gray-800 shadow-inner">
+                        <i class="fa-solid fa-heart-crack text-8xl text-gray-200 mb-12 block"></i>
+                        <p class="text-gray-400 font-black text-3xl mb-12">No treasures found here.</p>
+                        <button @click="setView('home')" class="btn-premium text-white px-16 py-6 rounded-[35px] font-black shadow-xl text-xl">Browse Bazaar</button>
+                    </div>
+                </div>
+
+                <!-- 6. SUPPORT -->
+                <div v-else-if="currentView === 'support'" key="support" class="max-w-4xl mx-auto">
+                    <div class="text-center mb-24">
+                        <h2 class="text-7xl font-black mb-6 tracking-tighter">official Escrow Support</h2>
+                        <p class="text-gray-500 text-xl font-medium">For secure asset verification and trade assistance, please contact our Verified Escrow Desk. Our manual intervention ensures that every deal is closed with 100% accuracy and privacy.</p>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-12 mb-20">
+                        <div @click="openOfficialWhatsApp" class="p-14 bg-white dark:bg-dark-900 rounded-[70px] border dark:border-gray-800 hover:vip-card transition-all cursor-pointer group shadow-sm text-center">
+                            <div class="w-24 h-24 bg-green-100 text-green-600 rounded-[35px] flex items-center justify-center text-5xl mb-10 group-hover:rotate-12 transition-transform shadow-lg mx-auto"><i class="fa-brands fa-whatsapp"></i></div>
+                            <h3 class="text-4xl font-black mb-4 text-green-600 tracking-tighter">6388677742</h3>
+                            <p class="text-gray-400 font-bold text-lg">Official Line: +91 6388677742 (Escrow Verification)</p>
+                        </div>
+                        <div class="p-12 md:p-16 bg-white dark:bg-dark-900 rounded-[70px] border dark:border-gray-800 shadow-sm md:col-span-2">
+                            <h3 class="text-4xl font-black mb-12 tracking-tighter text-center"><i class="fa-solid fa-headset mr-5 text-primary-600"></i> Open VIP Ticket</h3>
+                            <div class="space-y-10">
+                                <input v-model="ticketForm.subject" type="text" class="w-full px-10 py-7 rounded-[40px] bg-gray-50 dark:bg-dark-950 border-2 border-transparent focus:border-primary-500 outline-none font-bold text-xl shadow-inner" placeholder="Subject / ID">
+                                <textarea v-model="ticketForm.message" rows="6" class="w-full px-10 py-7 rounded-[40px] bg-gray-50 dark:bg-dark-950 border-2 border-transparent focus:border-primary-500 outline-none font-bold text-xl shadow-inner" placeholder="Detailed Inquiry..."></textarea>
+                                <button @click="submitTicket" :disabled="loading" class="w-full btn-premium py-8 rounded-[45px] text-white font-black text-3xl shadow-2xl">SEND TICKET</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 7. POLICIES -->
+                <div v-else-if="currentView === 'policy'" key="policy" class="max-w-4xl mx-auto py-10">
+                    <div class="bg-white dark:bg-dark-900 p-16 md:p-24 rounded-[80px] border dark:border-gray-800 shadow-2xl prose dark:prose-invert max-w-none">
+                        <h2 class="text-7xl font-black mb-20 tracking-tighter border-b-8 border-gold-500 w-fit">Vault Policy</h2>
+                        <div class="space-y-24 font-bold text-gray-500 text-2xl leading-relaxed">
+                            <section>
+                                <h3 class="text-4xl font-black text-primary-600 mb-10 flex items-center gap-8"><i class="fa-solid fa-mask"></i> Secure Escrow Management</h3>
+                                <p>To ensure the highest level of safety for both buyers and sellers, all transactions are processed through our Manual Escrow Verification. This approach prevents automated fraud and ensures that digital assets are authentic before funds are released. We prioritize your financial privacy by not storing sensitive transaction logs on public cloud databases.</p>
+                            </section>
+                            <section>
+                                <h3 class="text-4xl font-black text-primary-600 mb-10 flex items-center gap-8"><i class="fa-solid fa-ban"></i> Safe Trading Environment</h3>
+                                <p>ApnaAssets maintains a strict policy against fraudulent activities. The listing of unauthorized or "cracked" credentials is highy prohibited. To protect our community, accounts found violating these terms will be permanently restricted. We cooperate with standard security protocols to ensure a transparent and legal marketplace for all elite digital traders.</p>
+                            </section>
+                        </div>
+                        <div class="mt-40 pt-20 border-t-4 dark:border-gray-800 text-center">
+                             <p class="text-gray-400 font-black uppercase text-[14px] tracking-[0.5em] mb-4">Founder & Lead Escrow: DEV PANDE</p>
+                             <p class="text-7xl font-black text-dark-900 dark:text-white tracking-tighter">DEV PANDE</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 8. LISTING FORM -->
+                <div v-else-if="currentView === 'create' || currentView === 'edit'" key="form" class="max-w-4xl mx-auto">
+                    <div class="bg-white dark:bg-dark-900 p-14 md:p-24 rounded-[75px] shadow-2xl border dark:border-gray-800">
+                        <div class="flex justify-between items-center mb-20">
+                            <h2 class="text-5xl font-black tracking-tighter leading-none">{{ currentView === 'edit' ? 'MODIFY' : 'LIST NEW' }}<br><span class="text-gold-500 uppercase">Elite stock</span></h2>
+                            <button @click="setView('dashboard')" class="text-gray-300 hover:text-red-500 transition-colors"><i class="fa-solid fa-times-circle text-5xl"></i></button>
+                        </div>
+                        <div class="space-y-16">
+                            <div>
+                                <label class="text-[14px] font-black uppercase text-gray-400 ml-4 tracking-[0.4em] mb-10 block">Category Identifier</label>
+                                <div class="grid grid-cols-2 md:grid-cols-4 gap-6">
+                                    <button v-for="cat in categories" :key="cat.id" @click="listingForm.category = cat.id" :class="listingForm.category === cat.id ? 'vip-golden-glow scale-105 shadow-2xl border-gold-500' : 'bg-gray-50 dark:bg-dark-950 border-transparent text-gray-400'" class="p-10 rounded-[45px] flex flex-col items-center gap-6 transition-all border-4 font-black uppercase text-[11px] tracking-widest">
+                                        <i :class="cat.icon" class="text-5xl"></i> {{ cat.name }}
+                                    </button>
+                                </div>
+                            </div>
+                            <div>
+                                <label class="text-[14px] font-black uppercase text-gray-400 ml-4 tracking-[0.4em]">Asset Title</label>
+                                <input v-model="listingForm.title" type="text" class="w-full mt-6 px-10 py-8 rounded-[45px] bg-gray-50 dark:bg-dark-950 border-2 border-transparent focus:border-gold-500 outline-none font-black text-2xl shadow-inner transition-all" placeholder="Enter Identity...">
+                            </div>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-12">
+                                <div>
+                                    <label class="text-[14px] font-black uppercase text-gray-400 ml-4 tracking-[0.4em]">Valuation (₹ INR)</label>
+                                    <input v-model="listingForm.price" type="number" class="w-full mt-6 px-10 py-8 rounded-[45px] bg-gray-50 dark:bg-dark-950 border-2 border-transparent focus:border-gold-500 outline-none font-black text-3xl shadow-inner transition-all" placeholder="₹0">
+                                </div>
+                                <div>
+                                    <label class="text-[14px] font-black uppercase text-gray-400 ml-4 tracking-[0.4em]">Diagnostic Image</label>
+                                    <label class="block w-full mt-6 px-10 py-8 rounded-[45px] bg-primary-50 dark:bg-primary-900/20 text-primary-600 font-black cursor-pointer text-center border-4 border-dashed border-primary-200 hover:bg-primary-100 transition-all text-xl">
+                                        <span v-if="uploadingImg" class="loader border-primary-500 border-t-transparent"></span>
+                                        <span v-else>UPLOAD PROOF</span>
+                                        <input type="file" @change="handleImageUpload" class="hidden" accept="image/*">
+                                    </label>
+                                </div>
+                            </div>
+                            <div v-if="listingForm.images.length > 0" class="flex flex-wrap gap-8">
+                                <div v-for="(img, idx) in listingForm.images" :key="idx" class="relative group">
+                                    <img :src="img" class="w-36 h-36 rounded-[40px] object-cover border-4 border-primary-500 shadow-2xl transition-transform group-hover:scale-105">
+                                    <button @click="listingForm.images.splice(idx, 1)" class="absolute -top-5 -right-5 bg-red-500 text-white w-12 h-12 rounded-[20px] shadow-lg flex items-center justify-center border-4 border-white dark:border-dark-900"><i class="fa-solid fa-trash"></i></button>
+                                </div>
+                            </div>
+                            <div>
+                                <label class="text-[14px] font-black uppercase text-gray-400 ml-4 tracking-[0.4em]">Encrypted Buying Link (WA/IG)</label>
+                                <input v-model="listingForm.externalLink" type="text" class="w-full mt-6 px-10 py-8 rounded-[45px] bg-gray-50 dark:bg-dark-950 border-2 border-transparent focus:border-gold-500 outline-none font-bold shadow-inner transition-all" placeholder="https://...">
+                            </div>
+                            <div>
+                                <label class="text-[14px] font-black uppercase text-gray-400 ml-4 tracking-[0.4em]">Diagnostic Description</label>
+                                <textarea v-model="listingForm.description" rows="6" class="w-full mt-6 px-10 py-8 rounded-[45px] bg-gray-50 dark:bg-dark-950 border-2 border-transparent focus:border-gold-500 outline-none font-bold text-2xl shadow-inner transition-all" placeholder="Enter statistics..."></textarea>
+                            </div>
+                            <button @click="submitListing" :disabled="loading" class="w-full btn-premium py-10 rounded-[50px] text-white font-black text-4xl shadow-2xl active:scale-95 transition-all tracking-tighter">
+                                <span v-if="loading" class="loader border-white mr-6"></span> {{ currentView === 'edit' ? 'SYNC UPDATES' : 'LIST ELITE ASSET' }}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 9. AUTH VIEW -->
+                <div v-else-if="currentView === 'auth'" key="auth" class="max-w-md mx-auto py-24">
+                    <div class="bg-white dark:bg-dark-900 p-16 rounded-[70px] shadow-2xl border dark:border-gray-800">
+                        <div class="flex items-center justify-center mb-16">
+                            <div class="w-24 h-24 bg-primary-600 rounded-[35px] flex items-center justify-center text-white text-5xl shadow-2xl"><i class="fa-solid fa-fingerprint"></i></div>
+                        </div>
+                        <h2 class="text-6xl font-black mb-16 text-center tracking-tighter leading-none">{{ authMode === 'login' ? 'Portal Login' : 'Vault Setup' }}</h2>
+                        <div class="space-y-10">
+                            <div v-if="authMode === 'register'">
+                                <label class="text-[12px] font-black uppercase text-gray-400 ml-4 tracking-widest mb-2 block">Username</label>
+                                <input v-model="authForm.username" type="text" class="w-full px-10 py-6 rounded-3xl bg-gray-50 dark:bg-dark-950 border-2 border-transparent focus:border-primary-500 outline-none font-black shadow-inner" placeholder="Alex Empire">
+                            </div>
+                            <div>
+                                <label class="text-[12px] font-black uppercase text-gray-400 ml-4 tracking-widest mb-2 block">Neural Mail</label>
+                                <input v-model="authForm.email" type="email" class="w-full px-10 py-6 rounded-3xl bg-gray-50 dark:bg-dark-950 border-2 border-transparent focus:border-primary-500 outline-none font-black shadow-inner" placeholder="mail@neural.net">
+                            </div>
+                            <div>
+                                <label class="text-[12px] font-black uppercase text-gray-400 ml-4 tracking-widest mb-2 block">Access Key</label>
+                                <input v-model="authForm.password" type="password" class="w-full px-10 py-6 rounded-3xl bg-gray-50 dark:bg-dark-950 border-2 border-transparent focus:border-primary-500 outline-none font-black shadow-inner" placeholder="••••••••">
+                            </div>
+                            <button @click="handleAuth" :disabled="loading" class="w-full btn-premium py-8 rounded-[40px] text-white font-black text-3xl shadow-xl active:scale-95 transition-all">
+                                <span v-if="loading" class="loader mr-4"></span> {{ authMode === 'login' ? 'ACCESS' : 'INITIALIZE' }}
+                            </button>
+                            <button @click="authMode = authMode === 'login' ? 'register' : 'login'" class="w-full text-center text-sm font-black text-primary-600 hover:underline tracking-tight">
+                                {{ authMode === 'login' ? "New identity? Create Portal" : "Known identity? Connect here" }}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+            </transition>
+        </main>
+
+        <!-- FOOTER -->
+        <footer class="bg-white dark:bg-dark-950 border-t dark:border-gray-800 py-32 text-center">
+            <div class="max-w-7xl mx-auto px-4">
+                <div class="flex items-center justify-center mb-16 group cursor-pointer" @click="setView('home')">
+                    <div class="w-20 h-20 bg-primary-600 rounded-[30px] flex items-center justify-center mr-6 text-white shadow-2xl group-hover:rotate-12 transition-transform">
+                        <i class="fa-solid fa-crown text-3xl"></i>
+                    </div>
+                    <span class="font-black text-5xl tracking-tighter">Apna<span class="text-primary-600">Assets</span></span>
+                </div>
+                <div class="flex justify-center flex-wrap gap-16 mb-24 text-gray-400">
+                    <a @click="setView('policy')" class="text-[14px] font-black uppercase cursor-pointer hover:vip-text tracking-[0.5em] transition-all">Privacy Node</a>
+                    <a @click="setView('policy')" class="text-[14px] font-black uppercase cursor-pointer hover:vip-text tracking-[0.5em] transition-all">Vault Terms</a>
+                    <a @click="setView('support')" class="text-[14px] font-black uppercase cursor-pointer hover:vip-text tracking-[0.5em] transition-all">Manual Escrow</a>
+                </div>
+                <div class="pt-20 border-t dark:border-gray-900 flex flex-col md:flex-row justify-between items-center gap-10">
+                    <p class="text-[12px] font-black uppercase tracking-[0.6em] text-gray-500 opacity-60">Handcrafted by Master DEV PANDE</p>
+                    <p class="text-[12px] font-black uppercase tracking-[0.6em] text-gray-500 opacity-60">ApnaAssets Digital Hub v3.0
+Dedicated to Secure Digital Asset Acquisition.</p>
+                </div>
+            </div>
+        </footer>
+    </div>
+
+    <!-- TOASTIFY & SCRIPTS -->
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
+    <script>
+        const FIREBASE_CONFIG = {
+            apiKey: "AIzaSyDhdSgz3Eb5zF-Y-I8DYtsLJFl8cgJTs18",
+            authDomain: "apnaassets-e62c1.firebaseapp.com",
+            projectId: "apnaassets-e62c1",
+            databaseURL: "https://apnaassets-e62c1-default-rtdb.firebaseio.com/",
+            appId: "1:104885993973:web:7916292fd3f0180de820bc"
+        };
+        const IMGBB_KEY = "8e83405ea02945c6ae744447bcf3d032";
+
+        firebase.initializeApp(FIREBASE_CONFIG);
+        const auth = firebase.auth();
+        const db = firebase.database();
+
+        const { createApp, ref, reactive, onMounted, computed } = Vue;
+
+        createApp({
+            setup() {
+                const user = ref(null);
+                const userProfile = reactive({ username: '', avatar: '', bio: '', joinedAt: Date.now(), isVerified: false });
+                const currentView = ref('home');
+                const loading = ref(false);
+                const uploadingImg = ref(false);
+                const isDark = ref(false);
+                const listings = ref([]);
+                const savedIds = ref({});
+                const stats = reactive({ totalUsers: 0, totalAssets: 0 });
+                const filters = reactive({ search: '', category: 'youtube' });
+                const authMode = ref('login');
+                const authForm = reactive({ email: '', password: '', username: '' });
+                const ticketForm = reactive({ subject: '', message: '' });
+                const listingForm = reactive({ id: null, title: '', price: '', description: '', category: 'youtube', images: [], externalLink: '' });
+                const selectedListing = ref(null);
+                const activeImage = ref('');
+
+                const categories = [
+                    { id: 'youtube', name: 'YouTube', icon: 'fa-brands fa-youtube' },
+                    { id: 'instagram', name: 'Instagram', icon: 'fa-brands fa-instagram' },
+                    { id: 'domain', name: 'Domains', icon: 'fa-solid fa-globe' },
+                    { id: 'telegram', name: 'Telegram', icon: 'fa-brands fa-telegram' }
+                ];
+
+                onMounted(() => {
+                    auth.onAuthStateChanged(u => {
+                        user.value = u;
+                        if(u) {
+                            db.ref(`users/${u.uid}`).on('value', snap => {
+                                if(snap.val()) Object.assign(userProfile, snap.val());
+                            });
+                            db.ref(`savedListings/${u.uid}`).on('value', snap => {
+                                savedIds.value = snap.val() || {};
+                            });
+                        }
+                    });
+
+                    db.ref('stats/totalUsers').on('value', snap => stats.totalUsers = snap.val());
+                    db.ref('listings').on('value', snap => {
+                        listings.value = snap.val() ? Object.values(snap.val()) : [];
+                        stats.totalAssets = listings.value.length;
+                    });
+
+                    if(localStorage.getItem('theme') === 'dark') toggleTheme(true);
+                });
+
+                const filteredListings = computed(() => {
+                    return listings.value.filter(l => {
+                        const mSearch = l.title.toLowerCase().includes(filters.search.toLowerCase());
+                        const mCat = filters.category === 'all' || l.category === filters.category;
+                        return mSearch && mCat;
+                    });
+                });
+
+                const myListings = computed(() => user.value ? listings.value.filter(l => l.sellerId === user.value.uid) : []);
+                const savedListingsArray = computed(() => listings.value.filter(l => savedIds.value[l.id]));
+
+                const handleAuth = async () => {
+                    if(!authForm.email || !authForm.password) return notify("Fields required!", "error");
+                    loading.value = true;
+                    try {
+                        if(authMode.value === 'register') {
+                            const res = await auth.createUserWithEmailAndPassword(authForm.email, authForm.password);
+                            const userData = { username: authForm.username, email: authForm.email, isVerified: false, bio: '', avatar: '', joinedAt: Date.now() };
+                            await db.ref(`users/${res.user.uid}`).set(userData);
+                            db.ref('stats/totalUsers').transaction(v => (v || 0) + 1);
+                        } else {
+                            await auth.signInWithEmailAndPassword(authForm.email, authForm.password);
+                        }
+                        setView('home');
+                    } catch(e) { notify(e.message, "error"); }
+                    loading.value = false;
+                };
+
+                const updateProfile = async () => {
+                    loading.value = true;
+                    try {
+                        await db.ref(`users/${user.value.uid}`).update({ bio: userProfile.bio });
+                        notify("VIP Profile Synced!");
+                    } catch(e) { notify(e.message, "error"); }
+                    loading.value = false;
+                };
+
+                const uploadAvatar = async (e) => {
+                    const file = e.target.files[0];
+                    if(!file) return;
+                    const fd = new FormData(); fd.append("image", file);
+                    const res = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_KEY}`, { method: 'POST', body: fd });
+                    const data = await res.json();
+                    if(data.success) {
+                        await db.ref(`users/${user.value.uid}/avatar`).set(data.data.url);
+                        notify("Neural Avatar Saved!");
+                    }
+                };
+
+                const submitListing = async () => {
+                    if(!listingForm.title || !listingForm.price || listingForm.images.length === 0) return notify("Details required!", "error");
+                    loading.value = true;
+                    try {
+                        const ref = listingForm.id ? db.ref(`listings/${listingForm.id}`) : db.ref('listings').push();
+                        const payload = {
+                            id: ref.key,
+                            title: listingForm.title,
+                            price: Number(listingForm.price),
+                            description: listingForm.description,
+                            category: listingForm.category,
+                            images: listingForm.images,
+                            externalLink: listingForm.externalLink || 'https://wa.me/916388677742',
+                            sellerId: user.value.uid,
+                            sellerName: userProfile.username,
+                            sellerVerified: userProfile.isVerified,
+                            createdAt: listingForm.id ? (listingForm.createdAt || Date.now()) : Date.now(),
+                            views: listingForm.views || 0,
+                            clicks: listingForm.clicks || 0
+                        };
+                        await ref.set(payload);
+                        notify("Elite Asset Synced to Vault!");
+                        setView('dashboard');
+                    } catch(e) { notify(e.message, "error"); }
+                    loading.value = false;
+                };
+
+                const openListing = (item) => {
+                    selectedListing.value = item;
+                    activeImage.value = item.images[0];
+                    db.ref(`listings/${item.id}/views`).transaction(v => (v || 0) + 1);
+                    setView('detail');
+                };
+
+                const reportListing = (id) => {
+                    if(!user.value) return setView('auth');
+                    db.ref('reports').push({ listingId: id, reporterId: user.value.uid, timestamp: Date.now() });
+                    notify("Abuse report filed to Dev Pande.", "info");
+                };
+
+                const openSellerLink = (item) => {
+                    db.ref(`listings/${item.id}/clicks`).transaction(v => (v || 0) + 1);
+                    const l = item.externalLink;
+                    if(l && l.includes('http')) window.open(l, '_blank');
+                    else if(l && /^\d+$/.test(l)) window.open('https://wa.me/91' + l, '_blank');
+                    else window.open('https://wa.me/916388677742', '_blank');
+                };
+
+                const setView = (v) => { currentView.value = v; window.scrollTo(0,0); };
+                const toggleTheme = (val) => {
+                    isDark.value = (val === true) ? true : !isDark.value;
+                    document.documentElement.classList.toggle('dark', isDark.value);
+                    localStorage.setItem('theme', isDark.value ? 'dark' : 'light');
+                };
+
+                const notify = (m, t='success') => Toastify({ text: m, gravity: "top", position: "center", style: { background: t==='error' ? "#ef4444" : "#4f46e5", borderRadius: "30px", fontWeight: "bold" } }).showToast();
+                const formatPrice = (p) => new Intl.NumberFormat('en-IN').format(p);
+                const timeAgo = (ts) => Math.floor((new Date() - ts)/1000) > 86400 ? Math.floor((new Date() - ts)/86400000) + 'd ago' : 'Elite Now';
+
+                return {
+                    user, userProfile, currentView, loading, uploadingImg, isDark, 
+                    authMode, authForm, categories, filters, listings, selectedListing, activeImage,
+                    listingForm, ticketForm, filteredListings, myListings, savedListingsArray, stats,
+                    handleAuth, logout: () => { auth.signOut(); setView('home'); }, setView, toggleTheme,
+                    openListing, submitListing, handleImageUpload: async (e) => {
+                        const file = e.target.files[0];
+                        if(!file) return;
+                        uploadingImg.value = true;
+                        const fd = new FormData(); fd.append("image", file);
+                        const res = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_KEY}`, { method: 'POST', body: fd });
+                        const data = await res.json();
+                        if(data.success) listingForm.images.push(data.data.url);
+                        uploadingImg.value = false;
+                    }, 
+                    openCreateModal: () => { Object.assign(listingForm, { id: null, title: '', price: '', description: '', category: 'youtube', images: [], externalLink: '' }); setView('create'); }, 
+                    editListing: (i) => { Object.assign(listingForm, JSON.parse(JSON.stringify(i))); setView('edit'); }, 
+                    deleteListing: async (id) => { if(confirm("Purge asset?")) { await db.ref(`listings/${id}`).remove(); notify("Asset Purged!"); } }, 
+                    updateProfile, uploadAvatar, toggleSaved: (id) => { if(!user.value) return setView('auth'); const ref = db.ref(`savedListings/${user.value.uid}/${id}`); savedIds.value[id] ? ref.remove() : ref.set(Date.now()); },
+                    isSaved: (id) => !!savedIds.value[id],
+                    reportListing, submitTicket: async () => {
+                        if(!user.value) return setView('auth');
+                        await db.ref('tickets').push({ userId: user.value.uid, username: userProfile.username, subject: ticketForm.subject, message: ticketForm.message, status: 'open', createdAt: Date.now() });
+                        notify("VIP Ticket Relayed!");
+                        ticketForm.subject = ''; ticketForm.message = '';
+                    },
+                    formatPrice, timeAgo, shareAsset: () => { navigator.clipboard.writeText(window.location.href); notify("Vault Access URL Copied!"); },
+                    openSellerLink, openOfficialWhatsApp: () => window.open('https://wa.me/916388677742', '_blank')
+                };
+            }
+        }).mount('#app');
+    </script>
+</body>
+</html>

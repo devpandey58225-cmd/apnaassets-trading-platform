@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Master Admin Vault | ApnaAssets Empire</title>
+    
+    <!-- FONTS -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- TAILWIND & LIBRARIES -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
+    <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+    
+    <!-- FIREBASE -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Plus Jakarta Sans', 'sans-serif'] },
+                    colors: {
+                        primary: { 50: '#f0f4ff', 500: '#6366f1', 600: '#4f46e5' },
+                        gold: { 400: '#fbbf24', 500: '#f59e0b', 600: '#d97706' },
+                        dark: { 800: '#1e293b', 900: '#0f172a', 950: '#020617' }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        /* Hide Blogger Navbar */
+        #navbar, .navbar, #navbar-iframe { display: none !important; height: 0 !important; visibility: hidden !important; }
+
+        body { font-family: 'Plus Jakarta Sans', sans-serif; overflow-x: hidden; }
+        [v-cloak] { display: none; }
+        .glass { background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(12px); }
+        .dark .glass { background: rgba(15, 23, 42, 0.8); }
+        .loader { width: 24px; height: 24px; border: 3px solid #f59e0b; border-bottom-color: transparent; border-radius: 50%; display: inline-block; animation: rotation 1s linear infinite; }
+        @keyframes rotation { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        
+        .sidebar-active { background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%); color: white; box-shadow: 0 10px 20px -5px rgba(79, 70, 229, 0.4); }
+        .btn-grant-vip { background: linear-gradient(135deg, #fbbf24 0%, #d97706 100%); color: white; box-shadow: 0 5px 15px rgba(245, 158, 11, 0.3); }
+        .vip-text-gold { background: linear-gradient(to right, #fbbf24, #d97706); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-weight: 900; }
+        .modal-blur { backdrop-filter: blur(10px); background: rgba(0,0,0,0.5); }
+        .listing-card:hover { transform: translateY(-5px); }
+    </style>
+</head>
+
+<body class="bg-gray-50 text-gray-900 dark:bg-dark-950 dark:text-gray-100 min-h-screen">
+
+    <div id="adminApp" v-cloak>
+        
+        <!-- LOGIN / REGISTER (Auth for devpande@gmail.com) -->
+        <div v-if="!isAuthenticated" class="fixed inset-0 z-[100] bg-white dark:bg-dark-950 flex items-center justify-center p-4">
+            <div class="w-full max-w-md bg-white dark:bg-dark-900 p-12 rounded-[50px] shadow-2xl border dark:border-gray-800">
+                <div class="text-center mb-10">
+                    <div class="w-20 h-20 bg-primary-600 rounded-3xl flex items-center justify-center mx-auto mb-6 text-white text-3xl shadow-xl"><i class="fa-solid fa-key"></i></div>
+                    <h1 class="text-4xl font-black tracking-tighter uppercase">{{ authMode === 'login' ? 'Master Access' : 'Create Master' }}</h1>
+                </div>
+                <div class="space-y-6">
+                    <input v-model="loginForm.email" type="email" placeholder="Master Neural Email" class="w-full px-8 py-5 rounded-[25px] bg-gray-50 dark:bg-dark-800 outline-none font-bold border-2 border-transparent focus:border-primary-500 shadow-inner">
+                    <input v-model="loginForm.password" type="password" placeholder="Access Key" class="w-full px-8 py-5 rounded-[25px] bg-gray-50 dark:bg-dark-800 outline-none font-bold border-2 border-transparent focus:border-primary-500 shadow-inner">
+                    <button @click="handleAuth" :disabled="loading" class="w-full py-6 rounded-[30px] bg-primary-600 text-white font-black text-xl shadow-xl transition-all active:scale-95 flex justify-center items-center">
+                        <span v-if="loading" class="loader border-white mr-3"></span> {{ authMode === 'login' ? 'OPEN VAULT' : 'REGISTER ID' }}
+                    </button>
+                    <button @click="authMode = authMode === 'login' ? 'register' : 'login'" class="w-full text-center text-primary-600 font-black text-sm hover:underline">
+                        {{ authMode === 'login' ? "Register New Owner ID" : "Back to Login" }}
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div v-else class="flex min-h-screen">
+            <!-- SIDEBAR (FULL MENU) -->
+            <aside class="w-80 bg-white dark:bg-dark-900 border-r dark:border-gray-800 flex flex-col sticky top-0 h-screen">
+                <div class="p-10 text-center border-b dark:border-gray-800">
+                    <span class="font-black text-3xl tracking-tighter vip-text-gold uppercase">Apna Vault</span>
+                </div>
+                <nav class="p-6 space-y-3 flex-1 overflow-y-auto hide-scrollbar">
+                    <button @click="currentTab = 'stats'" :class="currentTab === 'stats' ? 'sidebar-active' : 'hover:bg-gray-50 dark:hover:bg-dark-800'" class="w-full flex items-center gap-4 px-6 py-5 rounded-3xl font-black text-sm transition-all group">
+                        <i class="fa-solid fa-chart-pie"></i> Statistics
+                    </button>
+                    <button @click="currentTab = 'users'" :class="currentTab === 'users' ? 'sidebar-active' : 'hover:bg-gray-50 dark:hover:bg-dark-800'" class="w-full flex items-center gap-4 px-6 py-5 rounded-3xl font-black text-sm transition-all group">
+                        <i class="fa-solid fa-crown text-gold-500"></i> Users & Golden VIP
+                    </button>
+                    <button @click="currentTab = 'listings'" :class="currentTab === 'listings' ? 'sidebar-active' : 'hover:bg-gray-50 dark:hover:bg-dark-800'" class="w-full flex items-center gap-4 px-6 py-5 rounded-3xl font-black text-sm transition-all group">
+                        <i class="fa-solid fa-box-open"></i> Marketplace Assets
+                    </button>
+                    <button @click="currentTab = 'reports'" :class="currentTab === 'reports' ? 'sidebar-active' : 'hover:bg-gray-50 dark:hover:bg-dark-800'" class="w-full flex items-center gap-4 px-6 py-5 rounded-3xl font-black text-sm transition-all relative">
+                        <i class="fa-solid fa-triangle-exclamation text-red-500"></i> Fraud Reports
+                        <span v-if="reports.length > 0" class="absolute right-4 bg-red-500 text-white text-[10px] px-2 py-0.5 rounded-full">{{ reports.length }}</span>
+                    </button>
+                    <button @click="currentTab = 'tickets'" :class="currentTab === 'tickets' ? 'sidebar-active' : 'hover:bg-gray-50 dark:hover:bg-dark-800'" class="w-full flex items-center gap-4 px-6 py-5 rounded-3xl font-black text-sm transition-all relative">
+                        <i class="fa-solid fa-headset"></i> Support Inbox
+                        <span v-if="stats.openTickets" class="absolute right-4 bg-orange-500 text-white text-[10px] px-2 py-0.5 rounded-full">{{ stats.openTickets }}</span>
+                    </button>
+                    <button @click="currentTab = 'config'" :class="currentTab === 'config' ? 'sidebar-active' : 'hover:bg-gray-50 dark:hover:bg-dark-800'" class="w-full flex items-center gap-4 px-6 py-5 rounded-3xl font-black text-sm transition-all group">
+                        <i class="fa-solid fa-gears"></i> Site Configuration
+                    </button>
+                </nav>
+                <div class="p-8 border-t dark:border-gray-800">
+                    <button @click="logout" class="w-full py-5 rounded-3xl bg-red-50 text-red-600 font-black text-sm">CLOSE VAULT</button>
+                </div>
+            </aside>
+
+            <!-- MAIN CONTENT -->
+            <main class="flex-1 p-12 overflow-y-auto">
+                
+                <!-- STATISTICS -->
+                <div v-if="currentTab === 'stats'">
+                    <h2 class="text-5xl font-black mb-12 tracking-tighter">Empire Metrics</h2>
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+                        <div class="bg-white dark:bg-dark-900 p-10 rounded-[50px] shadow-sm border dark:border-gray-800">
+                            <p class="text-gray-400 font-black text-[10px] uppercase tracking-widest mb-2">Total Traders</p>
+                            <p class="text-6xl font-black text-primary-600">{{ users.length }}</p>
+                        </div>
+                        <div class="bg-white dark:bg-dark-900 p-10 rounded-[50px] shadow-sm border dark:border-gray-800">
+                            <p class="text-gray-400 font-black text-[10px] uppercase tracking-widest mb-2">Market Assets</p>
+                            <p class="text-6xl font-black text-green-500">{{ listings.length }}</p>
+                        </div>
+                        <div class="bg-white dark:bg-dark-900 p-10 rounded-[50px] shadow-sm border dark:border-gray-800">
+                            <p class="text-gray-400 font-black text-[10px] uppercase tracking-widest mb-2">Pending Inquiries</p>
+                            <p class="text-6xl font-black text-orange-500">{{ tickets.length }}</p>
+                        </div>
+                        <div class="bg-white dark:bg-dark-900 p-10 rounded-[50px] shadow-sm border dark:border-gray-800">
+                            <p class="text-gray-400 font-black text-[10px] uppercase tracking-widest mb-2">Buy Clicks</p>
+                            <p class="text-6xl font-black text-blue-500">{{ totalClicks }}</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- USERS CONTROL (With Dialog Feature) -->
+                <div v-if="currentTab === 'users'">
+                    <div class="mb-10">
+                        <h2 class="text-5xl font-black tracking-tighter vip-text-gold">Neural User Control</h2>
+                        <p class="text-gray-400 font-bold mt-2 uppercase text-[10px] tracking-widest">Click on any trader row to open the Master Action Dialog.</p>
+                    </div>
+                    <div class="bg-white dark:bg-dark-900 rounded-[50px] overflow-hidden border dark:border-gray-800 shadow-2xl">
+                        <table class="w-full text-left">
+                            <thead class="bg-gray-50 dark:bg-dark-800 text-[10px] font-black uppercase text-gray-400 border-b dark:border-gray-700">
+                                <tr>
+                                    <th class="p-8">TRADER IDENTITY</th>
+                                    <th class="p-8">Neural Mail</th>
+                                    <th class="p-8 text-right">STATUS</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y dark:divide-gray-800 font-bold">
+                                <tr v-for="u in users" :key="u.uid" @click="openUserOptions(u)" class="hover:bg-gray-100 dark:hover:bg-dark-950/50 cursor-pointer transition-all">
+                                    <td class="p-8 flex items-center gap-5">
+                                        <div class="relative">
+                                            <img :class="u.isVerified ? 'border-4 border-gold-500 shadow-lg' : ''" :src="u.avatar || 'https://api.dicebear.com/7.x/bottts/svg?seed=' + u.username" class="w-16 h-16 rounded-3xl bg-white shadow-md">
+                                            <i v-if="u.isVerified" class="fa-solid fa-crown absolute -top-3 -right-3 text-gold-500 text-xl"></i>
+                                        </div>
+                                        <div>
+                                            <p class="font-black text-xl tracking-tight" :class="u.isVerified ? 'vip-text-gold' : ''">{{ u.username }}</p>
+                                            <p class="text-[9px] text-gray-400 uppercase tracking-widest">UID: {{ u.uid }}</p>
+                                        </div>
+                                    </td>
+                                    <td class="p-8 text-gray-500 text-sm">{{ u.email }}</td>
+                                    <td class="p-8 text-right">
+                                        <span v-if="u.isDisabled" class="bg-red-500 text-white text-[10px] px-4 py-1.5 rounded-full uppercase">Banned</span>
+                                        <span v-else-if="u.isVerified" class="bg-gold-500 text-white text-[10px] px-4 py-1.5 rounded-full uppercase tracking-tighter">🔱 Golden VIP</span>
+                                        <span v-else class="text-gray-400 text-[10px] uppercase tracking-widest">Standard Merchant</span>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- LISTINGS CONTROL -->
+                <div v-if="currentTab === 'listings'">
+                    <h2 class="text-5xl font-black mb-12 tracking-tighter">Global Asset Warehouse</h2>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
+                        <div v-for="item in listings" :key="item.id" class="p-8 bg-white dark:bg-dark-900 rounded-[50px] border dark:border-gray-800 shadow-xl flex flex-col gap-6 group transition-all listing-card">
+                            <div class="flex items-center gap-6">
+                                <img :src="item.images[0]" class="w-24 h-24 rounded-[35px] object-cover shadow-2xl group-hover:rotate-6 transition-all">
+                                <div class="flex-1">
+                                    <h4 class="font-black text-lg line-clamp-1 tracking-tight">{{ item.title }}</h4>
+                                    <p class="text-primary-600 font-black text-xl tracking-tighter">₹{{ formatPrice(item.price) }}</p>
+                                    <div class="flex gap-4 mt-3">
+                                        <span class="text-[9px] font-black text-gray-400 uppercase tracking-widest"><i class="fa-solid fa-eye text-gold-500"></i> {{ item.views || 0 }} Views</span>
+                                        <span class="text-[9px] font-black text-gray-400 uppercase tracking-widest"><i class="fa-solid fa-hand-pointer text-gold-500"></i> {{ item.clicks || 0 }} Clicks</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="flex gap-4 pt-6 border-t dark:border-gray-700">
+                                <button @click="toggleFeatured(item)" :class="item.featured ? 'bg-gold-500 text-white shadow-gold-500/30' : 'bg-gray-100 dark:bg-dark-800'" class="flex-1 py-4 rounded-3xl font-black text-[10px] uppercase shadow-md transition-all active:scale-95">Elite Status</button>
+                                <button @click="deleteListing(item.id)" class="flex-1 py-4 bg-red-50 text-red-500 rounded-3xl font-black text-[10px] uppercase hover:bg-red-100 transition-all">Nuke</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- FRAUD REPORTS -->
+                <div v-if="currentTab === 'reports'">
+                    <h2 class="text-5xl font-black mb-12 tracking-tighter text-red-500 uppercase italic">Danger Zone (Reports)</h2>
+                    <div v-if="reports.length > 0" class="space-y-6">
+                        <div v-for="r in reports" :key="r.id" class="p-12 bg-white dark:bg-dark-900 rounded-[60px] border-l-[12px] border-red-500 shadow-2xl flex justify-between items-center">
+                            <div>
+                                <h3 class="text-3xl font-black mb-2 tracking-tighter uppercase">Reported Asset: {{ r.listingId }}</h3>
+                                <p class="text-gray-400 font-bold uppercase text-xs tracking-widest">Accused By Trader UID: {{ r.reporterId }}</p>
+                            </div>
+                            <div class="flex gap-6">
+                                <button @click="deleteListing(r.listingId)" class="px-12 py-5 bg-red-600 text-white rounded-3xl font-black uppercase text-xs shadow-2xl active:scale-95 transition-all">TERMINATE ASSET</button>
+                                <button @click="dismissReport(r.id)" class="px-12 py-5 bg-gray-100 dark:bg-dark-800 text-gray-500 rounded-3xl font-black uppercase text-xs transition-all">Dismiss Case</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div v-else class="text-center py-40 bg-white dark:bg-dark-900 rounded-[60px] border-4 border-dashed dark:border-gray-800">
+                        <p class="text-gray-400 font-black text-2xl tracking-tighter">"Vault is Secured. All Reports Handled."</p>
+                    </div>
+                </div>
+
+                <!-- SUPPORT TICKETS -->
+                <div v-if="currentTab === 'tickets'">
+                    <h2 class="text-5xl font-black mb-12 tracking-tighter text-primary-600 uppercase">Incoming Support Neural Feed</h2>
+                    <div v-if="tickets.length > 0" class="space-y-8">
+                        <div v-for="t in tickets" :key="t.id" class="p-12 bg-white dark:bg-dark-900 rounded-[60px] border dark:border-gray-800 shadow-2xl relative overflow-hidden">
+                            <div v-if="t.status === 'open'" class="absolute top-0 right-0 bg-orange-500 text-white text-[11px] font-black px-12 py-3 uppercase tracking-widest rounded-bl-[40px] shadow-lg">New Incoming</div>
+                            <div class="flex flex-col md:flex-row justify-between items-start gap-10 mb-10">
+                                <div>
+                                    <h4 class="font-black text-4xl mb-2 tracking-tight">{{ t.subject }}</h4>
+                                    <p class="text-xs font-bold text-gray-400 flex items-center gap-3 italic font-serif">
+                                        <i class="fa-solid fa-fingerprint text-primary-600"></i> Origin: {{ t.username }}
+                                    </p>
+                                </div>
+                                <span class="px-10 py-4 rounded-full bg-primary-50 dark:bg-primary-900/30 text-primary-600 text-xs font-black uppercase tracking-widest border border-primary-500/20 shadow-sm">{{ t.status }}</span>
+                            </div>
+                            <div class="bg-gray-50 dark:bg-dark-950 p-12 rounded-[50px] text-gray-600 dark:text-gray-300 font-bold text-2xl leading-relaxed mb-12 shadow-inner border dark:border-gray-800">
+                                "{{ t.message }}"
+                            </div>
+                            <div class="flex gap-6">
+                                <button @click="updateTicket(t.id, 'resolved')" class="px-14 py-6 bg-primary-600 text-white rounded-[35px] font-black text-sm uppercase shadow-xl active:scale-95 transition-all">Close Diagnostic</button>
+                                <button @click="deleteTicket(t.id)" class="px-14 py-6 bg-red-50 text-red-500 rounded-[35px] font-black text-sm uppercase hover:bg-red-100 transition-all">Purge neural record</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div v-else class="text-center py-20 text-gray-400 font-black">Support Inbox is Empty.</div>
+                </div>
+
+                <!-- SITE CONFIGURATION -->
+                <div v-if="currentTab === 'config'">
+                    <h2 class="text-5xl font-black mb-12 tracking-tighter text-primary-600 uppercase">Vault Infrastructure</h2>
+                    <div class="max-w-4xl bg-white dark:bg-dark-900 p-16 rounded-[70px] border dark:border-gray-800 shadow-2xl space-y-12">
+                        <div>
+                            <label class="text-[12px] font-black uppercase text-gray-400 ml-4 tracking-[0.4em] block mb-4">Neural Announcement Bar (Ticker)</label>
+                            <input v-model="siteConfig.tickerText" type="text" class="w-full px-10 py-7 rounded-[40px] bg-gray-50 dark:bg-dark-800 outline-none font-bold border-2 border-transparent focus:border-gold-500 shadow-inner transition-all text-xl">
+                        </div>
+                        <div class="grid md:grid-cols-2 gap-10">
+                            <div>
+                                <label class="text-[11px] font-black uppercase text-gray-400 ml-4 tracking-widest block mb-4">Official Master Email</label>
+                                <input v-model="siteConfig.supportEmail" type="text" class="w-full px-8 py-5 rounded-3xl bg-gray-50 dark:bg-dark-800 outline-none font-bold border-2 border-transparent focus:border-primary-500 shadow-inner">
+                            </div>
+                            <div>
+                                <label class="text-[11px] font-black uppercase text-gray-400 ml-4 tracking-widest block mb-4">Master WhatsApp Link</label>
+                                <input v-model="siteConfig.whatsapp" type="text" class="w-full px-8 py-5 rounded-3xl bg-gray-50 dark:bg-dark-800 outline-none font-bold border-2 border-transparent focus:border-primary-500 shadow-inner">
+                            </div>
+                        </div>
+                        <div class="grid md:grid-cols-2 gap-10">
+                            <div>
+                                <label class="text-[11px] font-black uppercase text-gray-400 ml-4 tracking-widest block mb-4">Telegram Vault Path</label>
+                                <input v-model="siteConfig.telegram" type="text" class="w-full px-8 py-5 rounded-3xl bg-gray-50 dark:bg-dark-800 outline-none font-bold border-2 border-transparent focus:border-primary-500 shadow-inner">
+                            </div>
+                            <div>
+                                <label class="text-[11px] font-black uppercase text-gray-400 ml-4 tracking-widest block mb-4">Instagram Elite Path</label>
+                                <input v-model="siteConfig.instagram" type="text" class="w-full px-8 py-5 rounded-3xl bg-gray-50 dark:bg-dark-800 outline-none font-bold border-2 border-transparent focus:border-primary-500 shadow-inner">
+                            </div>
+                        </div>
+                        <button @click="saveConfig" :disabled="loading" class="w-full py-10 rounded-[50px] bg-gold-500 text-white font-black text-4xl shadow-2xl active:scale-95 transition-all uppercase tracking-tighter">
+                            <span v-if="loading" class="loader border-white mr-6"></span> SYNC GLOBAL ARCHITECTURE
+                        </button>
+                    </div>
+                </div>
+
+            </main>
+        </div>
+
+        <!-- 🔱 MASTER DIALOG (User Options Modal) 🔱 -->
+        <div v-if="showUserModal" class="fixed inset-0 z-[110] modal-blur flex items-center justify-center p-6" @click.self="showUserModal = false">
+            <div class="w-full max-w-sm bg-white dark:bg-dark-900 rounded-[60px] shadow-2xl border dark:border-gray-800 p-12 relative overflow-hidden transform transition-all scale-110">
+                
+                <div v-if="selectedUser.isVerified" class="absolute -top-10 -right-10 opacity-5 rotate-12"><i class="fa-solid fa-crown text-[200px] text-gold-500"></i></div>
+
+                <div class="text-center mb-12 relative z-10">
+                    <img :class="selectedUser.isVerified ? 'border-8 border-gold-500 shadow-gold-500/40' : 'border-4 border-primary-500/10'" :src="selectedUser.avatar || 'https://api.dicebear.com/7.x/bottts/svg?seed=' + selectedUser.username" class="w-32 h-32 rounded-[50px] mx-auto mb-6 shadow-2xl transition-all duration-700">
+                    <h3 class="text-4xl font-black tracking-tighter" :class="selectedUser.isVerified ? 'vip-text-gold' : ''">{{ selectedUser.username }}</h3>
+                    <p class="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-2">{{ selectedUser.email }}</p>
+                </div>
+
+                <div class="space-y-6 relative z-10 font-bold uppercase tracking-widest">
+                    <!-- GOLDEN VIP PASS BUTTON -->
+                    <button @click="toggleVerify(selectedUser)" class="w-full py-7 rounded-[35px] btn-grant-vip font-black text-xs flex items-center justify-center gap-4 shadow-2xl active:scale-95 transition-all">
+                        <i class="fa-solid fa-crown text-xl text-white"></i>
+                        {{ selectedUser.isVerified ? 'REVOKE GOLDEN PASS' : 'GRANT GOLDEN VIP PASS' }}
+                    </button>
+
+                    <!-- BAN / BLOCK BUTTON -->
+                    <button @click="toggleBan(selectedUser)" class="w-full py-7 rounded-[35px] bg-red-50 text-red-600 font-black text-xs flex items-center justify-center gap-4 border-2 border-red-100 hover:bg-red-100 active:scale-95 transition-all shadow-lg">
+                        <i class="fa-solid fa-user-slash text-xl"></i>
+                        {{ selectedUser.isDisabled ? 'RESTORE ACCESS' : 'BLOCK MASTER IDENTITY' }}
+                    </button>
+
+                    <button @click="showUserModal = false" class="w-full py-4 text-xs font-black text-gray-400 uppercase tracking-widest mt-6 opacity-60 hover:opacity-100 transition-all">Close Identity Record</button>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- TOASTIFY & SCRIPTS -->
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
+    <script>
+        const FIREBASE_CONFIG = {
+            apiKey: "AIzaSyDhdSgz3Eb5zF-Y-I8DYtsLJFl8cgJTs18",
+            authDomain: "apnaassets-e62c1.firebaseapp.com",
+            projectId: "apnaassets-e62c1",
+            databaseURL: "https://apnaassets-e62c1-default-rtdb.firebaseio.com/",
+            appId: "1:104885993973:web:7916292fd3f0180de820bc"
+        };
+        const ADMIN_EMAIL = "devpande@gmail.com"; 
+
+        firebase.initializeApp(FIREBASE_CONFIG);
+        const auth = firebase.auth();
+        const db = firebase.database();
+
+        const { createApp, ref, reactive, onMounted, computed } = Vue;
+
+        createApp({
+            setup() {
+                const isAuthenticated = ref(false);
+                const loading = ref(false);
+                const currentTab = ref('stats');
+                const authMode = ref('login');
+                const loginForm = reactive({ email: '', password: '' });
+                
+                const users = ref([]);
+                const listings = ref([]);
+                const tickets = ref([]);
+                const reports = ref([]);
+                const siteConfig = reactive({ supportEmail: 'devpande@gmail.com', whatsapp: '916388677742', telegram: '#', instagram: '#', tickerText: '' });
+
+                const showUserModal = ref(false);
+                const selectedUser = ref(null);
+
+                const stats = computed(() => ({
+                    openTickets: tickets.value.filter(t => t.status === 'open').length,
+                    tickets: tickets.value.length,
+                }));
+
+                const totalClicks = computed(() => listings.value.reduce((a, b) => a + (b.clicks || 0), 0));
+
+                onMounted(() => {
+                    auth.onAuthStateChanged(u => {
+                        if(u && u.email === ADMIN_EMAIL) {
+                            isAuthenticated.value = true;
+                            fetchAdminData();
+                        } else {
+                            isAuthenticated.value = false;
+                        }
+                    });
+                });
+
+                const handleAuth = async () => {
+                    if(loginForm.email !== ADMIN_EMAIL) return notify("Restricted ID!", "error");
+                    loading.value = true;
+                    try {
+                        if(authMode.value === 'register') await auth.createUserWithEmailAndPassword(loginForm.email, loginForm.password);
+                        else await auth.signInWithEmailAndPassword(loginForm.email, loginForm.password);
+                    } catch(e) { notify(e.message, "error"); }
+                    loading.value = false;
+                };
+
+                const fetchAdminData = () => {
+                    db.ref('users').on('value', snap => {
+                        users.value = snap.val() ? Object.entries(snap.val()).map(([k,v]) => ({uid: k, ...v})) : [];
+                    });
+                    db.ref('listings').on('value', snap => {
+                        listings.value = snap.val() ? Object.values(snap.val()) : [];
+                    });
+                    db.ref('tickets').on('value', snap => {
+                        tickets.value = snap.val() ? Object.entries(snap.val()).map(([k,v]) => ({id: k, ...v})) : [];
+                    });
+                    db.ref('reports').on('value', snap => {
+                        reports.value = snap.val() ? Object.entries(snap.val()).map(([k,v]) => ({id: k, ...v})) : [];
+                    });
+                    db.ref('siteConfig').on('value', snap => {
+                        if(snap.val()) Object.assign(siteConfig, snap.val());
+                    });
+                };
+
+                const openUserOptions = (user) => {
+                    selectedUser.value = user;
+                    showUserModal.value = true;
+                };
+
+                const toggleVerify = (user) => {
+                    db.ref(`users/${user.uid}/isVerified`).set(!user.isVerified);
+                    notify(user.isVerified ? "VIP Pass Revoked" : "Golden VIP Pass Deployed!");
+                    showUserModal.value = false;
+                };
+
+                const toggleBan = (user) => {
+                    db.ref(`users/${user.uid}/isDisabled`).set(!user.isDisabled);
+                    notify(user.isDisabled ? "Access Restored" : "Identity Purged.");
+                    showUserModal.value = false;
+                };
+
+                const deleteListing = (id) => {
+                    if(confirm("Confirm asset purge? No undo.")) {
+                        db.ref(`listings/${id}`).remove();
+                        const r = reports.value.find(x => x.listingId === id);
+                        if(r) db.ref(`reports/${r.id}`).remove();
+                        notify("Asset erased from warehouse.");
+                    }
+                };
+
+                const toggleFeatured = (item) => {
+                    db.ref(`listings/${item.id}/featured`).set(!item.featured);
+                    notify("Elite status synced.");
+                };
+
+                const updateTicket = (id, status) => {
+                    db.ref(`tickets/${id}/status`).set(status);
+                    notify("Ticket status updated to " + status);
+                };
+
+                const deleteTicket = (id) => {
+                    db.ref(`tickets/${id}`).remove();
+                    notify("Diagnostic record erased.");
+                };
+
+                const dismissReport = (id) => {
+                    db.ref(`reports/${id}`).remove();
+                    notify("Case dismissed.");
+                };
+
+                const saveConfig = async () => {
+                    loading.value = true;
+                    try {
+                        await db.ref('siteConfig').set(siteConfig);
+                        notify("Global System Sync Complete!");
+                    } catch(e) { notify("Sync Failure!", "error"); }
+                    loading.value = false;
+                };
+
+                const logout = () => { auth.signOut(); };
+                const notify = (m, t='success') => Toastify({ text: m, gravity: "top", position: "center", style: { background: t==='error' ? "#ef4444" : "#f59e0b", borderRadius: "30px", fontWeight: "bold" } }).showToast();
+
+                return {
+                    isAuthenticated, loading, currentTab, authMode, loginForm, siteConfig, users, listings, tickets, stats, reports, totalClicks,
+                    handleAuth, logout, toggleVerify, toggleBan, deleteListing, toggleFeatured, updateTicket, deleteTicket, saveConfig, dismissReport,
+                    showUserModal, selectedUser, openUserOptions,
+                    formatPrice: (p) => new Intl.NumberFormat('en-IN').format(p)
+                };
+            }
+        }).mount('#adminApp');
+    </script>
+</body>
+</html>
